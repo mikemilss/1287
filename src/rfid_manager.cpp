@@ -94,7 +94,7 @@ bool RFIDManager::configurePN532() {
 }
 
 ScanResult RFIDManager::scanCard() {
-    totalReads++;
+    // Убираем дублирование - счетчик ведется в scanCardFast()
     
     // Проверяем таймаут для неблокирующей работы
     if (!isTimeForRead()) {

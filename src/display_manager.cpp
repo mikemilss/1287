@@ -49,32 +49,51 @@ void DisplayManager::printStartupInfo() const {
 }
 
 void DisplayManager::printSystemStatus() const {
-    printHeader("СТАТУС СИСТЕМЫ");
+    // ФИЛЬТР: Уменьшаем спам - показываем только ключевые изменения
+    static uint32_t lastCardsCount = 0;
+    static uint32_t lastEvents = 0;
+    static SystemState lastState = STATE_INIT;
+    static unsigned long lastPrint = 0;
+    
+    // Проверяем есть ли значимые изменения
+    int currentCards = scanMatrix->findCardsInMatrix();
+    uint32_t currentEvents = scanMatrix->getCardsDetected() + scanMatrix->getCardsRemoved() + scanMatrix->getCardChanges();
+    SystemState currentState = stateManager->getCurrentState();
+    
+    bool hasChanges = (currentCards != lastCardsCount) || 
+                     (currentEvents != lastEvents) || 
+                     (currentState != lastState) ||
+                     (millis() - lastPrint > 30000); // Принудительно раз в 30 сек
+    
+    if (!hasChanges) {
+        return; // Не выводим если нет изменений
+    }
+    
+    // Сохраняем текущие значения
+    lastCardsCount = currentCards;
+    lastEvents = currentEvents;
+    lastState = currentState;
+    lastPrint = millis();
+    
+    DEBUG_PRINTLN("=== СТАТУС СИСТЕМЫ ===");
     
     char uptimeBuffer[32];
     formatUptime(millis(), uptimeBuffer, sizeof(uptimeBuffer));
     
     DEBUG_PRINTF("Время работы: %s\n", uptimeBuffer);
     DEBUG_PRINTF("Состояние: %s\n", stateManager->getStateName(stateManager->getCurrentState()));
-    DEBUG_PRINTF("Режим: СОБЫТИЙНОЕ СКАНИРОВАНИЕ\n");
-    DEBUG_PRINTF("Текущая ячейка: %d/%d\n", scanMatrix->getCurrentCellIndex(), MATRIX_TOTAL_CELLS - 1);
-    DEBUG_PRINTF("Проходов матрицы: %lu\n", scanMatrix->getTotalCycles());
+    DEBUG_PRINTF("RFID: %s | Проходов: %lu\n", 
+                 rfidManager->getConnected() ? "OK" : "НЕТ",
+                 scanMatrix->getTotalCycles());
     
-    // Статистика RFID
-    DEBUG_PRINTF("RFID подключен: %s\n", rfidManager->getConnected() ? "ДА" : "НЕТ");
+    // Только самые важные метрики
+    DEBUG_PRINTF("Карт в матрице: %d | События: %lu\n", currentCards, currentEvents);
+    
     if (rfidManager->getTotalReads() > 0) {
-        DEBUG_PRINTF("Успешность чтения: %.1f%%\n", rfidManager->getSuccessRate());
+        DEBUG_PRINTF("Успешность RFID: %.1f%%\n", rfidManager->getSuccessRate());
     }
     
-    // События карт (главная метрика)
-    int cardsInMatrix = scanMatrix->findCardsInMatrix();
-    DEBUG_PRINTF("Карт в матрице: %d\n", cardsInMatrix);
-    DEBUG_PRINTF("События: +%lu -%lu изм:%lu\n", 
-                 scanMatrix->getCardsDetected(),
-                 scanMatrix->getCardsRemoved(), 
-                 scanMatrix->getCardChanges());
-    
-    printFooter();
+    DEBUG_PRINTLN("======================");
 }
 
 void DisplayManager::printPerformanceReport() const {
@@ -171,16 +190,15 @@ void DisplayManager::printCardEvents() const {
 }
 
 void DisplayManager::printSeparator() const {
-    DEBUG_PRINTLN("════════════════════════════════════════════════════════════════");
+    DEBUG_PRINTLN("================================================================");
 }
 
 void DisplayManager::printHeader(const char* title) const {
-    DEBUG_PRINTF("║ %-60s ║\n", title);
-    DEBUG_PRINTLN("╠════════════════════════════════════════════════════════════════╣");
+    DEBUG_PRINTF("=== %s ===\n", title);
 }
 
 void DisplayManager::printFooter() const {
-    DEBUG_PRINTLN("╚════════════════════════════════════════════════════════════════╝");
+    DEBUG_PRINTLN("================================================================");
 }
 
 void DisplayManager::formatUptime(unsigned long uptimeMs, char* buffer, size_t bufferSize) const {
@@ -210,6 +228,8 @@ const char* DisplayManager::getSystemStateDescription() const {
     switch (state) {
         case STATE_INIT:
             return "Инициализация системы";
+        case STATE_SCANNING:
+            return "Активное сканирование матрицы";
         case STATE_SCAN_CELL:
             return "Сканирование ячейки";
         case STATE_PROCESS_CARD:
@@ -218,6 +238,8 @@ const char* DisplayManager::getSystemStateDescription() const {
             return "Переключение ячейки";
         case STATE_UPDATE_DISPLAY:
             return "Обновление дисплея";
+        case STATE_IDLE:
+            return "Режим ожидания";
         case STATE_ERROR:
             return "СОСТОЯНИЕ ОШИБКИ";
         default:

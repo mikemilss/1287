@@ -26,42 +26,44 @@ void StateManager::updateState() {
     unsigned long currentTime = millis();
     lastStateUpdate = currentTime;
     
-    // Логика переходов между состояниями
+    // ПРИМЕЧАНИЕ: Основная логика переходов управляется из main.cpp
+    // StateManager используется для трекинга и статистики состояний
+    // Автоматические переходы минимальны
+    
     switch (currentState) {
         case STATE_INIT:
-            // После инициализации переходим к сканированию
-            if (getStateRunTime() > 100) {  // Даем время на инициализацию
-                setState(STATE_SCAN_CELL);
-            }
+            // Состояние управляется из main.cpp
+            break;
+            
+        case STATE_SCANNING:
+            // Основное рабочее состояние - управляется из main.cpp
             break;
             
         case STATE_SCAN_CELL:
-            // Переход к обработке карты или к следующей ячейке
-            // Логика будет добавлена при интеграции с RFIDManager
-            setState(STATE_SWITCH_CELL);
+            // Детальные переходы управляются ScanMatrix
             break;
             
         case STATE_PROCESS_CARD:
-            // После обработки карты переходим к следующей ячейке
-            setState(STATE_SWITCH_CELL);
+            // Обработка карт управляется RFIDManager
             break;
             
         case STATE_SWITCH_CELL:
-            // Переключение на следующую ячейку, затем сканирование
-            setState(STATE_SCAN_CELL);
+            // Переключение управляется MultiplexerManager
             break;
             
         case STATE_UPDATE_DISPLAY:
-            // После обновления дисплея возвращаемся к сканированию
-            setState(STATE_SCAN_CELL);
+            // Обновления управляются DisplayManager
+            break;
+            
+        case STATE_IDLE:
+            // Режим ожидания - можем автоматически вернуться к сканированию
+            if (getStateRunTime() > 1000) {
+                setState(STATE_SCANNING);
+            }
             break;
             
         case STATE_ERROR:
-            // В состоянии ошибки пытаемся восстановиться
-            if (getStateRunTime() > 1000) {  // Ждем 1 секунду
-                DEBUG_PRINTLN("StateManager: Попытка восстановления после ошибки");
-                setState(STATE_INIT);
-            }
+            // Состояние ошибки - управляется из main.cpp через handleErrorRecovery()
             break;
     }
 }
@@ -114,6 +116,9 @@ unsigned long StateManager::getStateDelay() const {
         case STATE_INIT:
             return 50;  // Быстрая инициализация
             
+        case STATE_SCANNING:
+            return 1;   // Максимальная скорость для основного сканирования
+            
         case STATE_SCAN_CELL:
             return SCAN_DELAY_MS;  // 5мс оптимизированная задержка
             
@@ -125,6 +130,9 @@ unsigned long StateManager::getStateDelay() const {
             
         case STATE_UPDATE_DISPLAY:
             return 10;  // Умеренная скорость для дисплея
+            
+        case STATE_IDLE:
+            return 100; // Медленнее в режиме ожидания
             
         case STATE_ERROR:
             return 100; // Медленнее в состоянии ошибки
@@ -165,10 +173,12 @@ void StateManager::printCurrentState() const {
 const char* StateManager::getStateName(SystemState state) const {
     switch (state) {
         case STATE_INIT:           return "INIT";
+        case STATE_SCANNING:       return "SCANNING";
         case STATE_SCAN_CELL:      return "SCAN_CELL";
         case STATE_PROCESS_CARD:   return "PROCESS_CARD";
         case STATE_SWITCH_CELL:    return "SWITCH_CELL";
         case STATE_UPDATE_DISPLAY: return "UPDATE_DISPLAY";
+        case STATE_IDLE:           return "IDLE";
         case STATE_ERROR:          return "ERROR";
         default:                   return "UNKNOWN";
     }

@@ -56,10 +56,12 @@
 // Состояния системы
 enum SystemState {
     STATE_INIT,           // Инициализация системы
+    STATE_SCANNING,       // Режим активного сканирования матрицы
     STATE_SCAN_CELL,      // Сканирование текущей ячейки  
     STATE_PROCESS_CARD,   // Обработка найденной карты
     STATE_SWITCH_CELL,    // Переключение на следующую ячейку
     STATE_UPDATE_DISPLAY, // Обновление дисплея
+    STATE_IDLE,           // Режим ожидания
     STATE_ERROR           // Обработка ошибок
 };
 
