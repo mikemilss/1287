@@ -33,14 +33,14 @@
 #define MATRIX_COLS             12
 #define MATRIX_TOTAL_CELLS      (MATRIX_ROWS * MATRIX_COLS)  // 96 ячеек
 
-// ОПТИМИЗИРОВАННЫЕ ТАЙМИНГИ (в 8 раз быстрее чем было)
-#define SCAN_DELAY_MS           5     // Задержка между сканированиями ячеек (было 40мс)
-#define PN532_TIMEOUT_MS        10    // Таймаут PN532 операций (было 50мс)
-#define MUX_SETTLE_TIME_US      2     // Время стабилизации мультиплексора (было 10мкс)
+// КОНСЕРВАТИВНЫЕ ТАЙМИНГИ (медленные для стабильности)
+#define SCAN_DELAY_MS           40    // Задержка между сканированиями ячеек (стабильный режим)
+#define PN532_TIMEOUT_MS        50    // Таймаут PN532 операций (увеличенный для надёжности)
+#define MUX_SETTLE_TIME_US      10    // Время стабилизации мультиплексора (консервативное)
 #define DISPLAY_UPDATE_INTERVAL 2000  // Обновление дисплея каждые 2 сек
 
 // I2C настройки
-#define I2C_FREQUENCY           100000  // 100kHz для стабильной работы
+#define I2C_FREQUENCY           100000  // 100kHz для максимально стабильной работы
 #define I2C_TIMEOUT_MS          100
 
 // Размеры буферов
