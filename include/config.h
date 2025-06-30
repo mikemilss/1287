@@ -10,8 +10,8 @@
 #define PN532_SCL_PIN           22
 // PN532_I2C_ADDRESS уже определен в библиотеке Adafruit как 0x24, используем тот
 // #define PN532_I2C_ADDRESS       0x24
-#define PN532_IRQ_DUMMY         255  // -1 в uint8_t = библиотека НЕ будет использовать
-#define PN532_RESET_DUMMY       255  // -1 в uint8_t = библиотека НЕ будет использовать
+#define PN532_IRQ_DUMMY         -1   // Не используем IRQ пин в I2C режиме  
+#define PN532_RESET_DUMMY       -1   // Не используем RESET пин в I2C режиме
 
 // HP4067 Мультиплексор #1 (строки 0-7, S3=GND)
 #define MUX1_S0_PIN             4
@@ -33,10 +33,10 @@
 #define MATRIX_COLS             12
 #define MATRIX_TOTAL_CELLS      (MATRIX_ROWS * MATRIX_COLS)  // 96 ячеек
 
-// КОНСЕРВАТИВНЫЕ ТАЙМИНГИ (медленные для стабильности)
-#define SCAN_DELAY_MS           40    // Задержка между сканированиями ячеек (стабильный режим)
-#define PN532_TIMEOUT_MS        50    // Таймаут PN532 операций (увеличенный для надёжности)
-#define MUX_SETTLE_TIME_US      10    // Время стабилизации мультиплексора (консервативное)
+// ОПТИМИЗИРОВАННЫЕ ТАЙМИНГИ - ЭТАП 1 (безопасная оптимизация)
+#define SCAN_DELAY_MS           10    // Задержка между сканированиями ячеек (УСКОРЕНО 4x: 40→10мс)
+#define PN532_TIMEOUT_MS        50    // Таймаут PN532 операций (пока без изменений)
+#define MUX_SETTLE_TIME_US      2     // Время стабилизации мультиплексора (УСКОРЕНО 5x: 10→2мкс)
 #define DISPLAY_UPDATE_INTERVAL 2000  // Обновление дисплея каждые 2 сек
 
 // I2C настройки

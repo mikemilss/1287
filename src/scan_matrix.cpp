@@ -34,7 +34,7 @@ void ScanMatrix::initialize() {
     
     DEBUG_PRINTF("ScanMatrix: Инициализирована матрица %dx%d (%d ячеек)\n", 
                  MATRIX_ROWS, MATRIX_COLS, MATRIX_TOTAL_CELLS);
-    DEBUG_PRINTF("ScanMatrix: Ожидаемое время полного цикла: %.1f сек (консервативный режим)\n", 
+    DEBUG_PRINTF("ScanMatrix: Ожидаемое время полного цикла: %.1f сек (ЭТАП 1 оптимизация)\n", 
                  MATRIX_TOTAL_CELLS * SCAN_DELAY_MS / 1000.0);
 }
 
