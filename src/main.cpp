@@ -61,38 +61,26 @@ void setup() {
     DEBUG_PRINTLN("КОНСЕРВАТИВНЫЙ РЕЖИМ (стабильные тайминги)");
     DEBUG_PRINTLN("========================================");
     
-    // ЭТАП 1: Инициализация StateManager (критично в первую очередь)
-    DEBUG_PRINTLN("ЭТАП 1: Инициализация StateManager...");
+    // Инициализация системы
     stateManager.initialize();
     stateManager.setState(STATE_INIT);
     
-    // ЭТАП 2: Инициализация I2C шины
-    DEBUG_PRINTLN("ЭТАП 2: Инициализация I2C шины...");
     if (!initializeI2C()) {
         stateManager.setState(STATE_ERROR);
         handleInitializationError();
         return;
     }
     
-    // ЭТАП 3: КРИТИЧНАЯ ИНИЦИАЛИЗАЦИЯ PN532 (с повторными попытками)
-    DEBUG_PRINTLN("ЭТАП 3: Инициализация PN532 RFID модуля...");
     if (!initializePN532WithRetry()) {
         stateManager.setState(STATE_ERROR);
         handleInitializationError();
         return;
     }
     
-    // ЭТАП 4: Инициализация остальных компонентов (только после PN532)
-    DEBUG_PRINTLN("ЭТАП 4: Инициализация остальных компонентов...");
     initializeOtherComponents();
-    
-    // ЭТАП 5: Переход в рабочее состояние
     stateManager.setState(STATE_SCANNING);
     
-    DEBUG_PRINTLN("========================================");
     DEBUG_PRINTLN("✅ СИСТЕМА ПОЛНОСТЬЮ ИНИЦИАЛИЗИРОВАНА!");
-    DEBUG_PRINTLN("🔄 Начинаю событийное сканирование матрицы 8×12...");
-    DEBUG_PRINTLN("========================================");
 }
 
 // =============================================
@@ -147,26 +135,18 @@ void loop() {
 // =============================================
 
 bool initializePN532WithRetry() {
-    DEBUG_PRINTLN("Начинаю серию попыток инициализации PN532...");
-    
     for (pn532InitAttempts = 1; pn532InitAttempts <= MAX_INIT_ATTEMPTS; pn532InitAttempts++) {
-        DEBUG_PRINTF("📡 Попытка #%d/%d инициализации PN532...\n", 
-                     pn532InitAttempts, MAX_INIT_ATTEMPTS);
-        
         if (initializePN532Single()) {
-            DEBUG_PRINTF("✅ PN532 успешно инициализирован с попытки #%d!\n", pn532InitAttempts);
+            DEBUG_PRINTF("✅ PN532 инициализирован с попытки #%d\n", pn532InitAttempts);
             return true;
         }
         
-        DEBUG_PRINTF("❌ Попытка #%d неудачна\n", pn532InitAttempts);
-        
         if (pn532InitAttempts < MAX_INIT_ATTEMPTS) {
-            DEBUG_PRINTF("⏰ Ожидание %d сек перед следующей попыткой...\n", INIT_RETRY_DELAY/1000);
             delay(INIT_RETRY_DELAY);
         }
     }
     
-    DEBUG_PRINTLN("🚨 КРИТИЧЕСКАЯ ОШИБКА: PN532 не инициализирован после всех попыток!");
+    DEBUG_PRINTLN("🚨 ОШИБКА: PN532 не инициализирован!");
     return false;
 }
 
@@ -174,15 +154,11 @@ bool initializePN532Single() {
     // Проверяем наличие PN532 на I2C шине
     Wire.beginTransmission(0x24);
     if (Wire.endTransmission() != 0) {
-        DEBUG_PRINTLN("❌ PN532 не найден на I2C адресе 0x24");
         return false;
     }
     
-    DEBUG_PRINTLN("📡 PN532 обнаружен на I2C шине");
-    
     // Инициализация RFID менеджера
     if (!rfidManager.initialize()) {
-        DEBUG_PRINTLN("❌ Не удалось инициализировать RFID менеджер");
         return false;
     }
     
@@ -190,11 +166,9 @@ bool initializePN532Single() {
     delay(200); // Увеличенная пауза для стабильности
     
     if (!rfidManager.getConnected()) {
-        DEBUG_PRINTLN("❌ PN532 не отвечает на команды");
         return false;
     }
     
-    DEBUG_PRINTLN("✅ PN532 RFID модуль полностью готов к работе!");
     return true;
 }
 
@@ -203,16 +177,9 @@ bool initializePN532Single() {
 // =============================================
 
 void initializeOtherComponents() {
-    DEBUG_PRINTLN("Инициализация мультиплексоров HP4067...");
     muxManager.initialize();
-    
-    DEBUG_PRINTLN("Инициализация матрицы сканирования...");
     scanMatrix.initialize();
-    
-    DEBUG_PRINTLN("Инициализация менеджера отображения...");
     displayManager.initialize();
-    
-    DEBUG_PRINTLN("✅ Все компоненты инициализированы");
 }
 
 // =============================================
@@ -220,13 +187,8 @@ void initializeOtherComponents() {
 // =============================================
 
 bool initializeI2C() {
-    DEBUG_PRINTLN("Инициализация I2C...");
-    
     Wire.begin(PN532_SDA_PIN, PN532_SCL_PIN);
     Wire.setClock(I2C_FREQUENCY);  // 100kHz для стабильной работы
-    
-    DEBUG_PRINTF("I2C настроен: SDA=%d, SCL=%d, частота=%dkHz\n", 
-                 PN532_SDA_PIN, PN532_SCL_PIN, I2C_FREQUENCY / 1000);
     
     // Быстрая проверка I2C шины
     Wire.beginTransmission(0x24);
@@ -235,7 +197,6 @@ bool initializeI2C() {
         return true;
     }
     
-    DEBUG_PRINTLN("⚠️ PN532 не найден на адресе 0x24, но I2C шина инициализирована");
     return true;  // Продолжаем, PN532 попробуем инициализировать позже
 }
 
@@ -261,13 +222,9 @@ void handleErrorRecovery() {
     
     // Попытка восстановления каждые 5 секунд
     if (millis() - lastRecoveryAttempt >= 5000) {
-        DEBUG_PRINTLN("🔄 Попытка восстановления подключения PN532...");
-        
         if (rfidManager.reconnect()) {
-            DEBUG_PRINTLN("✅ Подключение восстановлено! Возвращаемся к сканированию");
+            DEBUG_PRINTLN("✅ Подключение восстановлено!");
             stateManager.setState(STATE_SCANNING);
-        } else {
-            DEBUG_PRINTLN("❌ Восстановление неудачно, повторю через 5 сек");
         }
         
         lastRecoveryAttempt = millis();
@@ -295,7 +252,6 @@ void handlePeriodicTasks() {
         
         // Если PN532 отключился во время работы
         if (!rfidManager.getConnected() && stateManager.getCurrentState() == STATE_SCANNING) {
-            DEBUG_PRINTLN("⚠️ Потеряно подключение к PN532, переход в режим ошибки");
             stateManager.setState(STATE_ERROR);
         }
         

@@ -91,14 +91,10 @@ void StateManager::setState(SystemState newState) {
             currentState == STATE_INIT || previousState == STATE_INIT) {
             shouldPrintDebug = true;
         } else if ((currentTime - lastDebugOutput) >= 5000) {  // Раз в 5 секунд
-            // Показываем статистику переходов за период
-            uint32_t transitionsInPeriod = stateTransitions - lastTransitionCount;
-            DEBUG_PRINTF("StateManager: Переходов за 5сек: %lu (всего: %lu), текущее: %s\n", 
-                        transitionsInPeriod, stateTransitions, getStateName(currentState));
-            
+            // Убираем спам статистики
             lastDebugOutput = currentTime;
             lastTransitionCount = stateTransitions;
-            shouldPrintDebug = false;  // Уже напечатали сводку
+            shouldPrintDebug = false;
         }
         
         if (shouldPrintDebug && ENABLE_SERIAL_DEBUG) {

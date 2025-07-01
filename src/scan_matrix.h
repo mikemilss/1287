@@ -58,6 +58,7 @@ public:
     // Поиск карт
     int findCardsInMatrix() const;  // Возвращает количество найденных карт
     void printMatrixState() const;
+    void printCardMatrix() const;   // Красивый вывод матрицы с картами
     
     // Метрики событийной сканирования (не FPS!)
     uint32_t getTotalCycles() const { return totalCycles; }

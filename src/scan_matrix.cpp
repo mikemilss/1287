@@ -65,26 +65,10 @@ void ScanMatrix::update() {
                 cardFoundTime = millis();
                 lastCardCell = currentCellIndex;
                 
-                // Логируем событие обнаружения
-                if (LOG_CARD_EVENTS) {
-                    int row = currentCellIndex / MATRIX_COLS;
-                    int col = currentCellIndex % MATRIX_COLS;
-                    DEBUG_PRINTF(">>> КАРТА ОБНАРУЖЕНА в ячейке [%d,%d] (индекс %d) <<<\n", 
-                                 row, col, currentCellIndex);
-                    
-                    uint8_t uid[UID_BUFFER_SIZE];
-                    uint8_t uidLength;
-                    if (rfidManager->getLastUID(uid, uidLength)) {
-                        DEBUG_PRINTF(">>> UID (%d байт): ", uidLength);
-                        for (uint8_t i = 0; i < uidLength; i++) {
-                            DEBUG_PRINTF("%02X ", uid[i]);
-                        }
-                        DEBUG_PRINTLN(" <<<");
-                    }
-                }
+                // Убираем постоянный вывод карт - выводим только матрицу в конце прохода
             }
             
-            // Задерживаемся на карте 1 секунду для стабильного чтения
+            // Задерживаемся на карте 1000мс для стабильного чтения (ЭТАП A: стабилизация)
             if (millis() - cardFoundTime < 1000) {
                 return; // НЕ переходим к следующей ячейке
             }
@@ -110,15 +94,37 @@ void ScanMatrix::update() {
         totalCycles++;
         scanInProgress = false;
         
-        // Печатаем сводку только при завершении полного прохода
-        if (ENABLE_PERFORMANCE_LOG) {
-            int cardsFound = findCardsInMatrix();
-            DEBUG_PRINTF(">>> ПОЛНЫЙ ПРОХОД #%lu ЗАВЕРШЕН: найдено %d карт <<<\n", 
-                         totalCycles, cardsFound);
-        }
+        // Измеряем время полного прохода
+        unsigned long cycleTime = millis() - cycleStartTime;
+        lastFullCycle = millis();
         
-        // Небольшая пауза между полными проходами
-        delay(100);
+        // Находим карты и выводим матрицу
+        int cardsFound = findCardsInMatrix();
+        
+        DEBUG_PRINTF("\n=== ПРОХОД #%lu ЗАВЕРШЕН за %lu мс ===\n", totalCycles, cycleTime);
+        DEBUG_PRINTF("Найдено карт: %d\n", cardsFound);
+        
+        if (cardsFound > 0) {
+            // Простой список карт вместо сложной матрицы (избегаем crash)
+            DEBUG_PRINTLN("Список найденных карт:");
+            for (int i = 0; i < MATRIX_TOTAL_CELLS; i++) {
+                if (cardCache[i].present) {
+                    int row = i / MATRIX_COLS;
+                    int col = i % MATRIX_COLS;
+                    DEBUG_PRINTF("[%d,%d]: ", row, col);
+                    for (uint8_t j = 0; j < cardCache[i].uidLength; j++) {
+                        DEBUG_PRINTF("%02X", cardCache[i].uid[j]);
+                    }
+                    DEBUG_PRINTLN("");
+                }
+            }
+        } else {
+            DEBUG_PRINTLN("Карты не обнаружены");
+        }
+        DEBUG_PRINTLN("=====================================\n");
+        
+        // Минимальная пауза между полными проходами
+        delay(10);
     }
 }
 
@@ -237,21 +243,7 @@ void ScanMatrix::processCardEvent(int cellIndex, const CardInfo& oldInfo, const 
 }
 
 void ScanMatrix::logCardEvent(int cellIndex, const char* event, const CardInfo& cardInfo) const {
-    if (!LOG_CARD_EVENTS) return;
-    
-    int row = cellIndex / MATRIX_COLS;
-    int col = cellIndex % MATRIX_COLS;
-    
-    DEBUG_PRINTF("ScanMatrix: Карта %s в ячейке [%d,%d] (индекс %d)\n", 
-                 event, row, col, cellIndex);
-    
-    if (cardInfo.present && cardInfo.uidLength > 0) {
-        DEBUG_PRINTF("ScanMatrix: UID (%d байт): ", cardInfo.uidLength);
-        for (uint8_t i = 0; i < cardInfo.uidLength; i++) {
-            DEBUG_PRINTF("%02X ", cardInfo.uid[i]);
-        }
-        DEBUG_PRINTLN("");
-    }
+    // Убираем лишний вывод - информация о картах только при обнаружении
 }
 
 // FPS метрики удалены - используем событийное сканирование
@@ -381,4 +373,53 @@ void ScanMatrix::printMatrixState() const {
     }
     
     DEBUG_PRINTLN("========================================");
+}
+
+void ScanMatrix::printCardMatrix() const {
+    DEBUG_PRINTLN("┌─────┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐");
+    DEBUG_PRINTLN("│  \\ │ 0 │ 1 │ 2 │ 3 │ 4 │ 5 │ 6 │ 7 │ 8 │ 9 │10 │11 │");
+    DEBUG_PRINTLN("├─────┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤");
+    
+    for (int row = 0; row < MATRIX_ROWS; row++) {
+        DEBUG_PRINTF("│  %d  │", row);
+        
+        for (int col = 0; col < MATRIX_COLS; col++) {
+            int cellIndex = row * MATRIX_COLS + col;
+            const CardInfo& card = cardCache[cellIndex];
+            
+            if (card.present) {
+                // Показываем последние 2 байта UID для краткости
+                if (card.uidLength >= 2) {
+                    DEBUG_PRINTF("%02X%02X", card.uid[card.uidLength-2], card.uid[card.uidLength-1]);
+                } else {
+                    DEBUG_PRINTF(" ■ ");
+                }
+            } else {
+                DEBUG_PRINTF(" · ");
+            }
+            DEBUG_PRINTF("│");
+        }
+        DEBUG_PRINTLN("");
+        
+        if (row < MATRIX_ROWS - 1) {
+            DEBUG_PRINTLN("├─────┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤");
+        }
+    }
+    
+    DEBUG_PRINTLN("└─────┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┘");
+    
+    // Выводим список найденных карт с полными UID
+    DEBUG_PRINTLN("\nСписок карт:");
+    for (int i = 0; i < MATRIX_TOTAL_CELLS; i++) {
+        if (cardCache[i].present) {
+            int row = i / MATRIX_COLS;
+            int col = i % MATRIX_COLS;
+            
+            DEBUG_PRINTF("[%d,%d]: ", row, col);
+            for (uint8_t j = 0; j < cardCache[i].uidLength; j++) {
+                DEBUG_PRINTF("%02X", cardCache[i].uid[j]);
+            }
+            DEBUG_PRINTLN("");
+        }
+    }
 } 

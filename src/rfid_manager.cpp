@@ -78,9 +78,14 @@ bool RFIDManager::getFirmwareVersion() {
         return false;
     }
     
-    DEBUG_PRINTF("RFIDManager: PN532 найден! Версия прошивки: 0x%08lX\n", versiondata);
-    DEBUG_PRINTF("- Чип: PN5%02X\n", (versiondata >> 24) & 0xFF);
-    DEBUG_PRINTF("- Версия: %d.%d\n", (versiondata >> 16) & 0xFF, (versiondata >> 8) & 0xFF);
+    // Убираем спам вывода версии - печатаем только при первой инициализации
+    static bool firstTime = true;
+    if (firstTime) {
+        DEBUG_PRINTF("RFIDManager: PN532 найден! Версия прошивки: 0x%08lX\n", versiondata);
+        DEBUG_PRINTF("- Чип: PN5%02X\n", (versiondata >> 24) & 0xFF);
+        DEBUG_PRINTF("- Версия: %d.%d\n", (versiondata >> 16) & 0xFF, (versiondata >> 8) & 0xFF);
+        firstTime = false;
+    }
     
     return true;
 }
@@ -166,13 +171,7 @@ ScanResult RFIDManager::scanCardFast() {
     lastUIDLength = uidLength;
     lastReadValid = true;
     
-    if (cardChanged && LOG_CARD_EVENTS) {
-        DEBUG_PRINTF("RFIDManager: Карта найдена - UID: ");
-        for (uint8_t i = 0; i < uidLength; i++) {
-            DEBUG_PRINTF("%02X ", uid[i]);
-        }
-        DEBUG_PRINTLN("");
-    }
+    // Убираем дублирование вывода - карты выводятся в ScanMatrix
     
     return cardChanged ? SCAN_CARD_CHANGED : SCAN_CARD_FOUND;
 }

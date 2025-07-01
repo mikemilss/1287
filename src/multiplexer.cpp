@@ -28,8 +28,6 @@ void Multiplexer::setPinMappings() {
 }
 
 void Multiplexer::initialize() {
-    DEBUG_PRINTF("Multiplexer: Инициализация мультиплексора #%d\n", muxNumber);
-    
     // Настройка пинов как выходы
     pinMode(s0Pin, OUTPUT);
     pinMode(s1Pin, OUTPUT);
@@ -42,14 +40,6 @@ void Multiplexer::initialize() {
     
     // Начальный адрес 0
     setAddress(0);
-    
-    if (muxNumber == 1) {
-        DEBUG_PRINTF("Multiplexer: Мультиплексор #%d инициализирован (пины: S0=%d, S1=%d, S2=%d, S3=GND)\n",
-                     muxNumber, s0Pin, s1Pin, s2Pin);
-    } else {
-        DEBUG_PRINTF("Multiplexer: Мультиплексор #%d инициализирован (пины: S0=%d, S1=%d, S2=%d, S3=%d)\n",
-                     muxNumber, s0Pin, s1Pin, s2Pin, s3Pin);
-    }
 }
 
 void Multiplexer::setAddress(int address) {
@@ -92,8 +82,7 @@ bool Multiplexer::isValidAddress(int address) const {
 }
 
 void Multiplexer::printStatus() const {
-    DEBUG_PRINTF("Multiplexer #%d: адрес=%d\n", 
-                 muxNumber, currentAddress);
+    // Убираем лишний вывод
 }
 
 // =============================================
@@ -107,8 +96,6 @@ MultiplexerManager::MultiplexerManager() : mux1(1), mux2(2) {
 }
 
 void MultiplexerManager::initialize() {
-    DEBUG_PRINTLN("MultiplexerManager: Инициализация менеджера мультиплексоров");
-    
     mux1.initialize();
     mux2.initialize();
     
@@ -118,9 +105,6 @@ void MultiplexerManager::initialize() {
     
     // Устанавливаем начальную позицию
     selectCell(0, 0);
-    
-    DEBUG_PRINTF("MultiplexerManager: Инициализирован для матрицы %dx%d (%d ячеек), общий EN=GPIO%d\n", 
-                 MATRIX_ROWS, MATRIX_COLS, MATRIX_TOTAL_CELLS, MUX_COMMON_EN_PIN);
 }
 
 void MultiplexerManager::selectCell(int row, int col) {
