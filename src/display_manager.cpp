@@ -81,17 +81,7 @@ void DisplayManager::printSystemStatus() const {
     formatUptime(millis(), uptimeBuffer, sizeof(uptimeBuffer));
     
     DEBUG_PRINTF("Время работы: %s\n", uptimeBuffer);
-    DEBUG_PRINTF("Состояние: %s\n", stateManager->getStateName(stateManager->getCurrentState()));
-    DEBUG_PRINTF("RFID: %s | Проходов: %lu\n", 
-                 rfidManager->getConnected() ? "OK" : "НЕТ",
-                 scanMatrix->getTotalCycles());
-    
-    // Только самые важные метрики
-    DEBUG_PRINTF("Карт в матрице: %d | События: %lu\n", currentCards, currentEvents);
-    
-    if (rfidManager->getTotalReads() > 0) {
-        DEBUG_PRINTF("Успешность RFID: %.1f%%\n", rfidManager->getSuccessRate());
-    }
+    DEBUG_PRINTF("Карт в матрице: %d\n", currentCards);
     
     DEBUG_PRINTLN("======================");
 }
@@ -99,9 +89,7 @@ void DisplayManager::printSystemStatus() const {
 void DisplayManager::printPerformanceReport() const {
     printHeader("ПРОИЗВОДИТЕЛЬНОСТЬ");
     
-    // Статистика сканирования (событийная)
-    DEBUG_PRINTF("Проходов матрицы: %lu\n", scanMatrix->getTotalCycles());
-    DEBUG_PRINTF("Время последнего прохода: %lu мс\n", scanMatrix->getLastCycleTime());
+    // Статистика сканирования
     DEBUG_PRINTF("Режим: СОБЫТИЙНОЕ СКАНИРОВАНИЕ\n");
     
     // События карт
@@ -111,17 +99,7 @@ void DisplayManager::printPerformanceReport() const {
     uint32_t totalEvents = scanMatrix->getCardsDetected() + scanMatrix->getCardsRemoved() + scanMatrix->getCardChanges();
     DEBUG_PRINTF("Всего событий: %lu\n", totalEvents);
     
-    // Статистика RFID
-    DEBUG_PRINTF("Всего попыток чтения: %lu\n", rfidManager->getTotalReads());
-    DEBUG_PRINTF("Успешные чтения: %lu\n", rfidManager->getSuccessfulReads());
-    DEBUG_PRINTF("Ошибки RFID: %lu\n", rfidManager->getErrors());
-    DEBUG_PRINTF("Таймауты: %lu\n", rfidManager->getTimeouts());
-    
-    if (rfidManager->getTotalReads() > 0) {
-        char successBuffer[16];
-        formatPercentage(rfidManager->getSuccessRate(), successBuffer, sizeof(successBuffer));
-        DEBUG_PRINTF("Успешность: %s\n", successBuffer);
-    }
+    // Статистика RFID убрана
     
     // Статистика состояний
     DEBUG_PRINTF("Переходы состояний: %lu\n", stateManager->getStateTransitions());

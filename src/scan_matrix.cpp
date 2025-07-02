@@ -8,8 +8,6 @@ ScanMatrix::ScanMatrix(MultiplexerManager* mux, RFIDManager* rfid) {
     scanInProgress = false;
     
     cycleStartTime = 0;
-    lastFullCycle = 0;
-    totalCycles = 0;
     // currentFPS убран - используем событийное сканирование вместо FPS
     
     cardsDetected = 0;
@@ -91,17 +89,15 @@ void ScanMatrix::update() {
     
     // Проверяем завершение полного прохода матрицы
     if (isCycleComplete()) {
-        totalCycles++;
         scanInProgress = false;
         
         // Измеряем время полного прохода
         unsigned long cycleTime = millis() - cycleStartTime;
-        lastFullCycle = millis();
         
         // Находим карты и выводим матрицу
         int cardsFound = findCardsInMatrix();
         
-        DEBUG_PRINTF("\n=== ПРОХОД #%lu ЗАВЕРШЕН за %lu мс ===\n", totalCycles, cycleTime);
+        DEBUG_PRINTF("\n=== СКАНИРОВАНИЕ ЗАВЕРШЕНО за %lu мс ===\n", cycleTime);
         DEBUG_PRINTF("Найдено карт: %d\n", cardsFound);
         
         if (cardsFound > 0) {
@@ -248,12 +244,7 @@ void ScanMatrix::logCardEvent(int cellIndex, const char* event, const CardInfo& 
 
 // FPS метрики удалены - используем событийное сканирование
 
-unsigned long ScanMatrix::getLastCycleTime() const {
-    if (lastFullCycle > 0 && cycleStartTime > 0) {
-        return lastFullCycle - cycleStartTime;
-    }
-    return 0;
-}
+// Метод удален - больше не нужен
 
 const CardInfo& ScanMatrix::getCardInfo(int cellIndex) const {
     static CardInfo emptyCard = {false, {0}, 0, 0, false};
@@ -306,12 +297,9 @@ void ScanMatrix::clearCardCache() {
 }
 
 void ScanMatrix::resetStatistics() {
-    totalCycles = 0;
     cardsDetected = 0;
     cardsRemoved = 0;
     cardChanges = 0;
-    // Убираем FPS метрики
-    lastFullCycle = 0;
     
     DEBUG_PRINTLN("ScanMatrix: Статистика сброшена");
 }
@@ -322,9 +310,8 @@ bool ScanMatrix::isValidCellIndex(int cellIndex) const {
 
 void ScanMatrix::printPerformanceMetrics() const {
     DEBUG_PRINTLN("========================================");
-    DEBUG_PRINTLN("СТАТИСТИКА СКАНИРОВАНИЯ (СОБЫТИЙНЫЙ РЕЖИМ)");
+    DEBUG_PRINTLN("СТАТИСТИКА СКАНИРОВАНИЯ");
     DEBUG_PRINTLN("========================================");
-    DEBUG_PRINTF("Полных проходов матрицы: %lu\n", totalCycles);
     DEBUG_PRINTF("Текущая ячейка: %d/%d\n", currentCellIndex, MATRIX_TOTAL_CELLS - 1);
     DEBUG_PRINTF("Сканирование активно: %s\n", scanInProgress ? "ДА" : "НЕТ");
     

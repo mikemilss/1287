@@ -18,10 +18,8 @@ private:
     int currentCellIndex;
     bool scanInProgress;
     
-    // Метрики проходов матрицы (не FPS!)
+    // Метрики времени
     unsigned long cycleStartTime;
-    unsigned long lastFullCycle;
-    uint32_t totalCycles;
     
     // События карт (основные метрики для событийной режима)
     uint32_t cardsDetected;
@@ -60,9 +58,8 @@ public:
     void printMatrixState() const;
     void printCardMatrix() const;   // Красивый вывод матрицы с картами
     
-    // Метрики событийной сканирования (не FPS!)
-    uint32_t getTotalCycles() const { return totalCycles; }
-    unsigned long getLastCycleTime() const;
+    // Метрики времени
+    unsigned long getCycleStartTime() const { return cycleStartTime; }
     
     // События карт (основные метрики)
     uint32_t getCardsDetected() const { return cardsDetected; }
